@@ -1,0 +1,6 @@
+(:project-name "cccp"
+ :use-sbt t
+ :sbt-subprojects (
+   (:name "cccp-server" :deps ())
+   (:name "cccp-agent" :deps ("cccp-server"))
+   (:name "cccp-jedit-client" :deps ())))

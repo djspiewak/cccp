@@ -1,0 +1,1 @@
+name := "cccp-agent"
