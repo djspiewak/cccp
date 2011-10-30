@@ -10,10 +10,10 @@ final class OpHistory private (history: SortedMap[Int, Op]) extends PartialFunct
   
   def this(base: Op) = this(SortedMap(base.version -> base))
   
+  def version = history.last._1
+  
   def apply(op: Op) = {
-    if (history contains op.version) {
-      throw new IllegalArgumentException("version %d already in history".format(op.version))
-    } else if (!(history contains op.parent)) {
+    if (!(history contains op.parent)) {
       throw new IllegalArgumentException("parent version %d is not in history".format(op.version))
     } else {
       val op2 = attemptTransform(op)
@@ -30,14 +30,18 @@ final class OpHistory private (history: SortedMap[Int, Op]) extends PartialFunct
       case _ => false
     }
     
-    !(history contains op.version) && (history contains op.parent) && canTransform
+    (history contains op.parent) && canTransform
   }
   
   private def attemptTransform(op: Op): Op = {
     val intervening = history from (op.parent + 1) values
     
-    val server = Composer.compose(intervening map { _.delta } asJava)
-    val pair = Transformer.transform(op.delta, server)
-    op.copy(delta = pair.clientOp).reparent(intervening.last.version)
+    if (intervening.isEmpty) {
+      op
+    } else {
+      val server = Composer.compose(intervening map { _.delta } asJava)
+      val pair = Transformer.transform(op.delta, server)
+      op.copy(delta = pair.clientOp).reparent(intervening.last.version)
+    }
   }
 }
