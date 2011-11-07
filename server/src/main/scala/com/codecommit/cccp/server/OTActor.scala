@@ -7,8 +7,10 @@ import scala.collection.SortedMap
 class OTActor extends Actor {
   import OTActor._
   
+  @volatile
   private var history: OpHistory = _
   
+  @volatile
   private var listeners = SortedMap[Int, Set[Channel[Op]]]()
   
   def receive = {
@@ -19,6 +21,7 @@ class OTActor extends Actor {
     
     case op: Op if history != null && history.isDefinedAt(op) => {
       val (op2, history2) = history(op)
+      history = history2
       broadcast(op2)
     }
     

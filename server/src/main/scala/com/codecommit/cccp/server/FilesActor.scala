@@ -7,6 +7,7 @@ class FilesActor extends Actor {
   import Actor._
   import FilesActor._
   
+  @volatile
   private var files = Map[String, ActorRef]()
   
   def receive = {
