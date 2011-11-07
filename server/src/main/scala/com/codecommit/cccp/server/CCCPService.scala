@@ -20,13 +20,13 @@ trait CCCPService extends BlueEyesServiceBuilder {
   val cccpService = service("cccp", "0.1") {
     logging { log => context =>
       request {
-        path("/'fileId/") {
+        path("/'id/") {
           produce(text/plain) {
             path('version) {
               get { request: HttpRequest[ByteChunk] =>
                 log.info("accessing history at a specific version")
                 
-                val response = files !!! RequestHistory(request parameters 'fileId, Some(request.parameters('version).toInt))
+                val response = files !!! RequestHistory(request parameters 'id, Some(request.parameters('version).toInt))
                 val back = new blueeyes.concurrent.Future[Option[ByteChunk]]
               
                 response.as[Op] foreach { op =>
@@ -40,7 +40,7 @@ trait CCCPService extends BlueEyesServiceBuilder {
             get { request: HttpRequest[ByteChunk] =>
               log.info("accessing composite history")
               
-              val response = files !!! RequestHistory(request parameters 'fileId, None)
+              val response = files !!! RequestHistory(request parameters 'id, None)
               val back = new blueeyes.concurrent.Future[Option[ByteChunk]]
               
               response.as[Op] foreach { op =>
@@ -54,7 +54,7 @@ trait CCCPService extends BlueEyesServiceBuilder {
                 log.info("applying operation")
                 val reader = new CharArrayReader(content.data map { _.toChar })
                 val op = OpFormat.read(reader)
-                files ! PerformEdit(request parameters 'fileId, op)
+                files ! PerformEdit(request parameters 'id, op)
               }
               
               blueeyes.concurrent.Future.sync(HttpResponse(content = None))
