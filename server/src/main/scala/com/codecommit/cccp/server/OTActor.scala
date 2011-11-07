@@ -4,8 +4,8 @@ package server
 import akka.actor._
 import scala.collection.SortedMap
 
-class FileActor extends Actor {
-  import FileActor._
+class OTActor extends Actor {
+  import OTActor._
   
   private var history: OpHistory = _
   
@@ -42,6 +42,6 @@ class FileActor extends Actor {
   }
 }
 
-object FileActor {
+object OTActor {
   case class RequestHistory(channel: Channel[Op], from: Option[Int])
 }

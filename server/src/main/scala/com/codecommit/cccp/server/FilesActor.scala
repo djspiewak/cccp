@@ -11,12 +11,12 @@ class FilesActor extends Actor {
   
   def receive = {
     case PerformEdit(id, op) => fileRef(id) ! op
-    case RequestHistory(id, from) => fileRef(id) ! FileActor.RequestHistory(self.channel, from)
+    case RequestHistory(id, from) => fileRef(id) ! OTActor.RequestHistory(self.channel, from)
   }
   
   private def fileRef(id: String) = {
     files get id getOrElse {
-      val back = actorOf[FileActor]
+      val back = actorOf[OTActor]
       back.start()
       files += (id -> back)
       back
