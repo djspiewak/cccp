@@ -16,8 +16,7 @@ class FilesActor extends Actor {
   
   private def fileRef(id: String) = {
     files get id getOrElse {
-      val back = actorOf[OTActor]
-      back.start()
+      val back = actorOf[OTActor].start()
       files += (id -> back)
       back
     }

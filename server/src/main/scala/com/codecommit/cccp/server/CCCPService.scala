@@ -13,11 +13,7 @@ trait CCCPService extends BlueEyesServiceBuilder {
   import FilesActor._
   import MimeTypes._
   
-  lazy val files = {
-    val back = actorOf[FilesActor]
-    back.start()
-    back
-  }
+  lazy val files = actorOf[FilesActor].start()
   
   // TODO content type for operation
   
