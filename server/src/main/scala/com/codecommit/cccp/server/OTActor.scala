@@ -14,28 +14,37 @@ class OTActor extends Actor {
   private var listeners = SortedMap[Int, Set[Channel[Op]]]()
   
   def receive = {
-    case op: Op if history == null => {
-      history = new OpHistory(op)
-      broadcast(op)
-    }
-    
-    case op: Op if history != null && history.isDefinedAt(op) => {
-      val (op2, history2) = history(op)
-      history = history2
-      broadcast(op2)
+    case op: Op => {
+      if (history == null) {
+        history = new OpHistory(op)
+        broadcast(op)
+      } else if (history != null && history.isDefinedAt(op)) {
+        val (op2, history2) = history(op)
+        history = history2
+        broadcast(op2)
+      }
     }
     
     // TODO error handling on operations
     
-    case RequestHistory(channel, Some(version)) if history == null || version >= history.version => {
-      if (listeners contains version)
-        listeners = listeners.updated(version, listeners(version) + channel)
-      else
-        listeners += (version -> Set(channel))
+    case RequestHistory(channel, Some(version)) => {
+      if (history == null || version >= history.version) {
+        if (listeners contains version)
+          listeners = listeners.updated(version, listeners(version) + channel)
+        else
+          listeners += (version -> Set(channel))
+      } else if (history != null) {
+        channel ! history.from(Some(version))
+      }
     }
     
-    case RequestHistory(channel, version) if history != null =>
-      channel ! history.from(version)
+    case RequestHistory(channel, version) => {
+      if (history == null) {
+        channel ! Op(0)
+      } else {
+        channel ! history.from(version)
+      }
+    }
   }
   
   private def broadcast(op: Op) {
