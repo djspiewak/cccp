@@ -1,7 +1,7 @@
 package com.codecommit.cccp
 package server
 
-import akka.actor.Actor.actorOf
+import akka.actor.Actor
 
 import blueeyes._
 import blueeyes.core.data._
@@ -13,7 +13,7 @@ trait CCCPService extends BlueEyesServiceBuilder {
   import FilesActor._
   import MimeTypes._
   
-  lazy val files = actorOf[FilesActor].start()
+  lazy val files = Actor.actorOf[FilesActor].start()
   
   // TODO content type for operation
   
@@ -24,37 +24,31 @@ trait CCCPService extends BlueEyesServiceBuilder {
           produce(text/plain) {
             path('version) {
               get { request: HttpRequest[ByteChunk] =>
+                implicit val timeout = Actor.Timeout(2 * 60 * 1000)
+                
                 log.info("accessing history at a specific version")
                 
-                val response = files !!! RequestHistory(request parameters 'id, Some(request.parameters('version).toInt))
+                val response = files ? RequestHistory(request parameters 'id, request.parameters('version).toInt)
                 val back = new blueeyes.concurrent.Future[Option[ByteChunk]]
               
-                response.as[Op] foreach { op =>
-                  log.info("delivering operation: " + new String(opToChunk(op).data))
-                  back deliver Some(opToChunk(op))
+                response.as[Seq[Op]] foreach { ops =>
+                  log.info("delivering operations: " + new String(opToChunk(ops).data))
+                  back deliver Some(opToChunk(ops))
                 }
+                
+                response onTimeout { _ =>
+                  back deliver None
+                } 
                 
                 back map { d => HttpResponse(content = d) }
               }
             } ~
-            get { request: HttpRequest[ByteChunk] =>
-              log.info("accessing composite history")
-              
-              val response = files !!! RequestHistory(request parameters 'id, None)
-              val back = new blueeyes.concurrent.Future[Option[ByteChunk]]
-              
-              response.as[Op] foreach { op =>
-                back deliver Some(opToChunk(op))
-              }
-              
-              back map { d => HttpResponse(content = d) }
-            } ~
             post { request: HttpRequest[ByteChunk] =>
               for (content <- request.content) {
-                log.info("applying operation")
+                log.info("applying operation(s)")
                 val reader = new CharArrayReader(content.data map { _.toChar })
-                val op = OpFormat.read(reader)
-                files ! PerformEdit(request parameters 'id, op)
+                val ops = OpFormat.read(reader)
+                ops foreach { op => files ! PerformEdit(request parameters 'id, op) }
               }
               
               blueeyes.concurrent.Future.sync(HttpResponse(content = None))
@@ -65,10 +59,10 @@ trait CCCPService extends BlueEyesServiceBuilder {
     }
   }
   
-  private def opToChunk(op: Op): ByteChunk = {
+  private def opToChunk(ops: Seq[Op]): ByteChunk = {
     val os = new ByteArrayOutputStream
     val writer = new OutputStreamWriter(os)
-    OpFormat.write(op, writer)
+    OpFormat.write(ops, writer)
     writer.close()
     
     new MemoryChunk(os.toByteArray, { () => None })

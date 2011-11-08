@@ -26,5 +26,5 @@ class FilesActor extends Actor {
 
 object FilesActor {
   case class PerformEdit(id: String, op: Op)
-  case class RequestHistory(id: String, from: Option[Int])
+  case class RequestHistory(id: String, from: Int)
 }

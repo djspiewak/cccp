@@ -33,13 +33,7 @@ final class OpHistory private (history: SortedMap[Int, Op]) extends PartialFunct
     (history contains op.parent) && canTransform
   }
   
-  def from(version: Option[Int]): Op = {
-    val first = history(history.firstKey)
-    val intervening = version map { v => history from (v + 1) values } getOrElse history.values
-    val delta = Composer.compose(intervening map { _.delta } asJava)
-    
-    Op(first.id, first.parent, history(history.lastKey).version, delta)
-  }
+  def from(version: Int): Seq[Op] = (history from version values).toSeq
   
   private def attemptTransform(op: Op): Op = {
     val intervening = history from (op.parent + 1) values

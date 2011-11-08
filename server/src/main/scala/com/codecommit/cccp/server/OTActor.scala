@@ -11,7 +11,7 @@ class OTActor extends Actor {
   private var history: OpHistory = _
   
   @volatile
-  private var listeners = SortedMap[Int, Set[Channel[Op]]]()
+  private var listeners = SortedMap[Int, Set[Channel[Seq[Op]]]]()
   
   def receive = {
     case op: Op => {
@@ -27,20 +27,12 @@ class OTActor extends Actor {
     
     // TODO error handling on operations
     
-    case RequestHistory(channel, Some(version)) => {
-      if (history == null || version >= history.version) {
+    case RequestHistory(channel, version) => {
+      if (history == null || version > history.version) {
         if (listeners contains version)
           listeners = listeners.updated(version, listeners(version) + channel)
         else
           listeners += (version -> Set(channel))
-      } else if (history != null) {
-        channel ! history.from(Some(version))
-      }
-    }
-    
-    case RequestHistory(channel, version) => {
-      if (history == null) {
-        channel ! Op(0)
       } else {
         channel ! history.from(version)
       }
@@ -50,10 +42,10 @@ class OTActor extends Actor {
   private def broadcast(op: Op) {
     val channels = (listeners to op.version values).flatten
     listeners = listeners from (op.version + 1)
-    channels foreach { _ ! op }
+    channels foreach { _ ! Vector(op) }
   }
 }
 
 object OTActor {
-  case class RequestHistory(channel: Channel[Op], from: Option[Int])
+  case class RequestHistory(channel: Channel[Seq[Op]], from: Int)
 }
