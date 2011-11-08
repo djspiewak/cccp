@@ -4,6 +4,8 @@ package agent
 import org.waveprotocol.wave.model.document.operation.algorithm.{Composer, Transformer}
 
 sealed trait ClientState {
+  val version: Int
+  
   def applyClient(op: Op): Action
   def applyServer(op: Op): Action
 }
