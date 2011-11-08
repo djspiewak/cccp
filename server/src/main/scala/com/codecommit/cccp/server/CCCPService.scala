@@ -12,6 +12,7 @@ import java.io.{ByteArrayOutputStream, CharArrayReader, OutputStreamWriter}
 trait CCCPService extends BlueEyesServiceBuilder {
   import FilesActor._
   import MimeTypes._
+  import OpChunkUtil._
   
   lazy val files = Actor.actorOf[FilesActor].start()
   
@@ -46,8 +47,7 @@ trait CCCPService extends BlueEyesServiceBuilder {
             post { request: HttpRequest[ByteChunk] =>
               for (content <- request.content) {
                 log.info("applying operation(s)")
-                val reader = new CharArrayReader(content.data map { _.toChar })
-                val ops = OpFormat.read(reader)
+                val ops = chunkToOp(content)
                 ops foreach { op => files ! PerformEdit(request parameters 'id, op) }
               }
               
@@ -57,14 +57,5 @@ trait CCCPService extends BlueEyesServiceBuilder {
         }
       }
     }
-  }
-  
-  private def opToChunk(ops: Seq[Op]): ByteChunk = {
-    val os = new ByteArrayOutputStream
-    val writer = new OutputStreamWriter(os)
-    OpFormat.write(ops, writer)
-    writer.close()
-    
-    new MemoryChunk(os.toByteArray, { () => None })
   }
 }
