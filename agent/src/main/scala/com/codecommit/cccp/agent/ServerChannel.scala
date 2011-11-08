@@ -25,7 +25,7 @@ class ServerChannel(protocol: String, host: String, port: Int) extends Actor {
           self ! Poll(id, version, callback)
         } else {
           val ops = chunkToOp(content)
-          ops foreach { op => callback ! EditPerformed(id, op) }
+          callback ! EditsPerformed(id, ops)
         }
       }
     }
@@ -34,7 +34,7 @@ class ServerChannel(protocol: String, host: String, port: Int) extends Actor {
 
 object ServerChannel {
   case class PerformEdit(id: String, op: Op)
-  case class EditPerformed(id: String, op: Op)
+  case class EditsPerformed(id: String, op: Seq[Op])
   
   case class Poll(id: String, version: Int, callback: ActorRef)
 }
