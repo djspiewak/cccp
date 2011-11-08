@@ -3,13 +3,15 @@ package agent
 
 import akka.actor.{Actor, ActorRef}
 
-class ClientFileActor(id: String, callback: ActorRef, channel: ActorRef) extends Actor {
+class ClientFileActor(id: String, fileName: String, callback: ActorRef, channel: ActorRef) extends Actor {
+  import Actor._
+  import ClientFileActor._
   import ServerChannel._
   
   @volatile
   var state: ClientState = Synchronized(0)
   
-  channel ! Poll(id, state.version, self)
+  channel ! Poll(id, state.version, actorOf(this))
   
   def receive = {
     case op: Op => handleAction(state applyClient op)
@@ -30,7 +32,7 @@ class ClientFileActor(id: String, callback: ActorRef, channel: ActorRef) extends
     }
     
     case Apply(op, state2) => {
-      callback ! op
+      callback ! EditPerformed(fileName, op)
       state = state2
     }
     
@@ -40,3 +42,6 @@ class ClientFileActor(id: String, callback: ActorRef, channel: ActorRef) extends
   }
 }
 
+object ClientFileActor {
+  case class EditPerformed(fileName: String, op: Op)
+}
