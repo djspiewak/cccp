@@ -1,7 +1,7 @@
 package com.codecommit.cccp
 package agent
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
 
 import java.net.Socket
 import java.util.UUID
@@ -23,7 +23,24 @@ class SwankProtocol(socket: Socket) extends Actor {
   
   val agent = new AsyncSocketAgent(socket, receiveData, { _ => })        // TODO error handling
   
+  @volatile
+  var channel: ActorRef = _
+  
+  @volatile
+  var files = Map[String, ActorRef]()
+  
   def receive = {
+    case InitConnection(protocol, host, port) =>
+      channel = actorOf(new ServerChannel(protocol, host, port))
+    
+    case LinkFile(id, fileName) => {
+      if (channel != null) {
+        files = files.updated(fileName, actorOf(new ClientFileActor(id, fileName, self, channel)))
+      }
+    }
+    
+    case EditFile(fileName, op) => files get fileName foreach { _ ! op }
+    
     case EditPerformed(fileName, op) =>
   }
 
