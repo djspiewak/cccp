@@ -22,8 +22,8 @@ class Backend(home: File, fatalServerError: String => Unit) {
   
   def start(env: (String, String)*)(callback: String => Unit) {
     if (!isStarted) {
-      portFile = File.createTempFile("ensime", ".port", TempDir)
-      val logFile = File.createTempFile("ensime", ".log", TempDir)
+      portFile = File.createTempFile("cccp", ".port", TempDir)
+      val logFile = File.createTempFile("cccp", ".log", TempDir)
       val serverScript = new File(new File(home, "bin"), "server")
       
       val builder = new ProcessBuilder(serverScript.getAbsolutePath,  portFile.getCanonicalPath)
