@@ -6,13 +6,13 @@ import java.io.File
 import java.lang.ref.WeakReference
 
 import org.gjt.sp.jedit
-import jedit.{Buffer, jEdit => JEdit, EditPlugin, View}
+import jedit.{Buffer, jEdit => JEdit, EBPlugin, View}
 import jedit.buffer.{BufferAdapter, JEditBuffer}
 import jedit.textarea.Selection
 
 import scala.util.parsing.input.CharSequenceReader
 
-class CCCPPlugin extends EditPlugin {
+class CCCPPlugin extends EBPlugin {
   override def start() {
     val starter = new Thread {
       override def run() {

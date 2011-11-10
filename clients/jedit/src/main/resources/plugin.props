@@ -1,15 +1,15 @@
-plugin.com.codecommit.es.CCCPPlugin.activate=defer
-plugin.com.codecommit.es.CCCPPlugin.name=CCCP
-plugin.com.codecommit.es.CCCPPlugin.author=Daniel Spiewak
-plugin.com.codecommit.es.CCCPPlugin.version=0.1
-# plugin.com.codecommit.es.CCCPPlugin.jars=scala-library.jar
+plugin.com.codecommit.cccp.jedit.CCCPPlugin.activate=defer
+plugin.com.codecommit.cccp.jedit.CCCPPlugin.name=CCCP
+plugin.com.codecommit.cccp.jedit.CCCPPlugin.author=Daniel Spiewak
+plugin.com.codecommit.cccp.jedit.CCCPPlugin.version=0.1
+# plugin.com.codecommit.cccp.jedit.CCCPPlugin.jars=scala-library.jar
 
-plugin.com.codecommit.es.CCCPPlugin.option-group=cccp
+plugin.com.codecommit.cccp.jedit.CCCPPlugin.option-group=cccp
 
 # options.cccp.label=CCCP
-# options.cccp.code=new com.codecommit.es.ui.EnsimeOptionPane();
+# options.cccp.code=new com.codecommit.cccp.jedit.ui.EnsimeOptionPane();
 
-plugin.com.codecommit.es.CCCPPlugin.menu=cccp.link
+plugin.com.codecommit.cccp.jedit.CCCPPlugin.menu=cccp.link
 
 options.menu.label=CCCP
 
