@@ -42,6 +42,7 @@ class SwankProtocol(socket: Socket) extends Actor {
     case EditFile(fileName, op) => files get fileName foreach { _ ! op }
     
     case EditPerformed(fileName, op) =>
+      send(SExp(key(":edit-performed"), fileName, marshallOp(op)).toWireString)
   }
 
   def receiveData(chunk: String) {
@@ -94,6 +95,8 @@ class SwankProtocol(socket: Socket) extends Actor {
       
       case _ => // TODO
     }
+  
+    case "swank:shutdown" => System.exit(0)
   
     // TODO more calls
   

@@ -3,9 +3,11 @@ package jedit
 
 import java.awt.EventQueue
 import java.io.File
+import java.lang.ref.WeakReference
 
 import org.gjt.sp.jedit
-import jedit.{jEdit => JEdit, EditPlugin, View}
+import jedit.{Buffer, jEdit => JEdit, EditPlugin, View}
+import jedit.buffer.{BufferAdapter, JEditBuffer}
 import jedit.textarea.Selection
 
 import scala.util.parsing.input.CharSequenceReader
@@ -37,6 +39,9 @@ object CCCPPlugin {
   private var _callId = 0
   private val callLock = new AnyRef
   
+  @volatile
+  private var ignoredFiles = Set[String]()   // will only be written from the EDT
+  
   def callId() = callLock synchronized {
     _callId += 1
     _callId
@@ -51,25 +56,56 @@ object CCCPPlugin {
   }
   
   def link(view: View) {
+    val buffer = view.getBuffer
+    val fileName = new File(buffer.getPath).getAbsolutePath
+    
+    buffer.addBufferListener(new BufferAdapter {
+      override def contentInserted(editBuffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
+        editBuffer match {
+          case buffer: Buffer => {
+            if (fileName == new File(buffer.getPath).getAbsolutePath) {
+              if (!ignoredFiles.contains(fileName)) {
+                val text = buffer.getText(offset, length)
+                val remainder = buffer.getLength - offset - text.length
+                sendInsert(fileName, offset, text, remainder)
+              }
+            }
+          }
+          
+          case _ =>    // ignore
+        }
+      }
+      
+      override def contentRemoved(editBuffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
+        editBuffer match {
+          case buffer: Buffer => {
+            if (fileName == new File(buffer.getPath).getAbsolutePath) {
+              if (!ignoredFiles.contains(fileName)) {
+                val text = buffer.getText(offset, length)
+                val remainder = buffer.getLength - offset - text.length
+                sendDelete(fileName, offset, text, remainder)
+              }
+            }
+          }
+          
+          case _ =>    // ignore
+        }
+      }
+    })
   }
   
   private def applyActions(fileName: String, actions: Set[EditorAction]) {
     val view = JEdit.getActiveView
     val buffer = JEdit.openFile(view, fileName)
-    val pane = view.goToBuffer(buffer)
-    val area = pane.getTextArea
     
-    val origSelection = area.getSelection
+    // val origSelection = area.getSelection
     
     actions foreach {
-      case InsertAt(offset, text) =>
-        area.setSelectedText(new Selection.Range(offset, offset), text)
-      
-      case DeleteAt(offset, text) =>
-        area.setSelectedText(new Selection.Range(offset, offset + text.length), "")
+      case InsertAt(offset, text) => buffer.insert(offset, text)
+      case DeleteAt(offset, text) => buffer.remove(offset, text.length)
     }
     
-    val newSelection = origSelection map { sel =>
+    /* val newSelection = origSelection map { sel =>
       val relevant = actions filter { _.offset <= sel.getStart() }
       
       val adjustments = relevant map {
@@ -85,7 +121,17 @@ object CCCPPlugin {
       }
     }
     
-    area.setSelection(newSelection)
+    area.setSelection(newSelection) */
+  }
+  
+  private def sendInsert(fileName: String, offset: Int, text: String, after: Int) {
+    val op = SExp(key(":retain"), offset, key(":insert"), text, key(":retain"), after)
+    send(SExp(key(":swank-rpc"), SExp(key("swank:edit-file"), fileName, op), callId()).toWireString)
+  }
+  
+  private def sendDelete(fileName: String, offset: Int, text: String, after: Int) {
+    val op = SExp(key(":retain"), offset, key(":delete"), text, key(":retain"), after)
+    send(SExp(key(":swank-rpc"), SExp(key("swank:edit-file"), fileName, op), callId()).toWireString)
   }
   
   private def send(chunk: String) {
@@ -105,7 +151,9 @@ object CCCPPlugin {
         
         EventQueue.invokeLater(new Runnable {
           def run() {
+            ignoredFiles += fileName
             applyActions(fileName, actions)
+            ignoredFiles -= fileName
           }
         })
       }
