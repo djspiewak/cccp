@@ -1,0 +1,17 @@
+plugin.com.codecommit.es.CCCPPlugin.activate=defer
+plugin.com.codecommit.es.CCCPPlugin.name=CCCP
+plugin.com.codecommit.es.CCCPPlugin.author=Daniel Spiewak
+plugin.com.codecommit.es.CCCPPlugin.version=0.1
+# plugin.com.codecommit.es.CCCPPlugin.jars=scala-library.jar
+
+plugin.com.codecommit.es.CCCPPlugin.option-group=cccp
+
+# options.cccp.label=CCCP
+# options.cccp.code=new com.codecommit.es.ui.EnsimeOptionPane();
+
+plugin.com.codecommit.es.CCCPPlugin.menu=cccp.link
+
+options.menu.label=CCCP
+
+# CCCP
+cccp.link.label=Link File...

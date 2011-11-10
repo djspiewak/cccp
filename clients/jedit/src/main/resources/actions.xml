@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<!DOCTYPE ACTIONS SYSTEM "actions.dtd">
+<ACTIONS>
+    <ACTION NAME="cccp.link">
+        <CODE>
+            com.codecommit.cccp.jedit.CCCPPlugin.link(view);
+        </CODE>
+    </ACTION>
+</ACTIONS>
