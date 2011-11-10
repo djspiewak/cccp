@@ -35,7 +35,7 @@ class SwankProtocol(socket: Socket) extends Actor {
     
     case LinkFile(id, fileName) => {
       if (channel != null) {
-        files = files.updated(fileName, actorOf(new ClientFileActor(id, fileName, self, channel)))
+        files = files.updated(fileName, actorOf(new ClientFileActor(id, fileName, self, channel)).start())
       }
     }
     
