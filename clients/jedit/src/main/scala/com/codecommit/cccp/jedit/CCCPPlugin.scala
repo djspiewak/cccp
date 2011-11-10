@@ -76,7 +76,7 @@ object CCCPPlugin {
               contentChanged("insert", editBuffer, startLine, offset, numLines, length)
             }
             
-            override def contentRemoved(editBuffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
+            override def preContentRemoved(editBuffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
               contentChanged("delete", editBuffer, startLine, offset, numLines, length)
             }
             
