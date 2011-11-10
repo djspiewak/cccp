@@ -61,29 +61,21 @@ object CCCPPlugin {
     
     buffer.addBufferListener(new BufferAdapter {
       override def contentInserted(editBuffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
-        editBuffer match {
-          case buffer: Buffer => {
-            if (fileName == new File(buffer.getPath).getAbsolutePath) {
-              if (!ignoredFiles.contains(fileName)) {
-                val text = buffer.getText(offset, length)
-                val remainder = buffer.getLength - offset - text.length
-                sendInsert(fileName, offset, text, remainder)
-              }
-            }
-          }
-          
-          case _ =>    // ignore
-        }
+        contentChanged("insert", editBuffer, startLine, offset, numLines, length)
       }
       
       override def contentRemoved(editBuffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
+        contentChanged("delete", editBuffer, startLine, offset, numLines, length)
+      }
+      
+      private def contentChanged(change: String, editBuffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
         editBuffer match {
           case buffer: Buffer => {
             if (fileName == new File(buffer.getPath).getAbsolutePath) {
               if (!ignoredFiles.contains(fileName)) {
                 val text = buffer.getText(offset, length)
                 val remainder = buffer.getLength - offset - text.length
-                sendDelete(fileName, offset, text, remainder)
+                sendChange(change, fileName, offset, text, remainder)
               }
             }
           }
@@ -124,14 +116,14 @@ object CCCPPlugin {
     area.setSelection(newSelection) */
   }
   
-  private def sendInsert(fileName: String, offset: Int, text: String, after: Int) {
-    val op = SExp(key(":retain"), offset, key(":insert"), text, key(":retain"), after)
-    send(SExp(key(":swank-rpc"), SExp(key("swank:edit-file"), fileName, op), callId()).toWireString)
+  // TODO type safety
+  private def sendChange(change: String, fileName; String, offset: Int, text: String, after: Int) {
+    val op = SExp(key(":retain"), offset, key(":" + change), text, key(":retain"), after)
+    sendRPC(SExp(key("swank:edit-file"), fileName, op), callId())
   }
   
-  private def sendDelete(fileName: String, offset: Int, text: String, after: Int) {
-    val op = SExp(key(":retain"), offset, key(":delete"), text, key(":retain"), after)
-    send(SExp(key(":swank-rpc"), SExp(key("swank:edit-file"), fileName, op), callId()).toWireString)
+  private def sendRPC(form: SExp, id: Int) {
+    send(SExp(key(":swank-rpc"), form, id).toWireString)
   }
   
   private def send(chunk: String) {
