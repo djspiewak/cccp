@@ -5,6 +5,8 @@ import java.awt.EventQueue
 import java.io.File
 import java.lang.ref.WeakReference
 
+import javax.swing.JOptionPane
+
 import org.gjt.sp.jedit
 import jedit.{Buffer, jEdit => JEdit, EBPlugin, View}
 import jedit.buffer.{BufferAdapter, JEditBuffer}
@@ -35,6 +37,10 @@ object CCCPPlugin {
   val Home = new File("/Users/daniel/Development/Scala/cccp/agent/dist/")
   val Backend = new Backend(Home, fatalServerError)
   
+  val Protocol = "http"
+  val Host = "localhost"
+  val Port = 8585
+  
   @volatile
   private var _callId = 0
   private val callLock = new AnyRef
@@ -49,38 +55,47 @@ object CCCPPlugin {
   
   private def init() {
     Backend.start()(receive)
+    sendRPC(SExp(key(":init-connection"), SExp(key(":protocol"), Protocol, key(":host"), Host, key(":port"), Port)), callId())
   }
   
   private def shutdown() {
-    send(SExp(key(":swank-rpc"), SExp(key("swank:shutdown")), callId()).toWireString)
+    sendRPC(SExp(key("swank:shutdown")), callId())
   }
   
   def link(view: View) {
     val buffer = view.getBuffer
     val fileName = new File(buffer.getPath).getAbsolutePath
     
-    buffer.addBufferListener(new BufferAdapter {
-      override def contentInserted(editBuffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
-        contentChanged("insert", editBuffer, startLine, offset, numLines, length)
-      }
-      
-      override def contentRemoved(editBuffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
-        contentChanged("delete", editBuffer, startLine, offset, numLines, length)
-      }
-      
-      private def contentChanged(change: String, editBuffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
-        editBuffer match {
-          case buffer: Buffer => {
-            if (fileName == new File(buffer.getPath).getAbsolutePath) {
-              if (!ignoredFiles.contains(fileName)) {
-                val text = buffer.getText(offset, length)
-                val remainder = buffer.getLength - offset - text.length
-                sendChange(change, fileName, offset, text, remainder)
+    EventQueue.invokeLater(new Runnable {
+      def run() {
+        for (id <- Option(JOptionPane.showInputDialog(view, "File ID:"))) {
+          sendRPC(SExp(key("swank:link-file"), id, fileName), callId())
+          
+          buffer.addBufferListener(new BufferAdapter {
+            override def contentInserted(editBuffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
+              contentChanged("insert", editBuffer, startLine, offset, numLines, length)
+            }
+            
+            override def contentRemoved(editBuffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
+              contentChanged("delete", editBuffer, startLine, offset, numLines, length)
+            }
+            
+            private def contentChanged(change: String, editBuffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
+              editBuffer match {
+                case buffer: Buffer => {
+                  if (fileName == new File(buffer.getPath).getAbsolutePath) {
+                    if (!ignoredFiles.contains(fileName)) {
+                      val text = buffer.getText(offset, length)
+                      val remainder = buffer.getLength - offset - text.length
+                      sendChange(change, fileName, offset, text, remainder)
+                    }
+                  }
+                }
+                
+                case _ =>    // ignore
               }
             }
-          }
-          
-          case _ =>    // ignore
+          })
         }
       }
     })

@@ -11,3 +11,5 @@ resolvers ++= Seq(
   "JBoss"       at "http://repository.jboss.org/nexus/content/groups/public/",
   "Akka"        at "http://akka.io/repository/",
   "GuiceyFruit" at "http://guiceyfruit.googlecode.com/svn/repo/releases/")
+  
+exportJars := true

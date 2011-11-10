@@ -11,7 +11,7 @@ class ClientFileActor(id: String, fileName: String, callback: ActorRef, channel:
   @volatile
   var state: ClientState = Synchronized(0)
   
-  channel ! Poll(id, state.version, actorOf(this))
+  channel ! Poll(id, state.version, self)
   
   def receive = {
     case op: Op => handleAction(state applyClient op)

@@ -8,7 +8,6 @@ import java.net.Socket
 import java.util.UUID
 
 import org.waveprotocol.wave.model.document.operation.DocOp
-import org.waveprotocol.wave.model.document.operation.DocOpCursor
 import org.waveprotocol.wave.model.document.operation.DocOpComponentType
 import org.waveprotocol.wave.model.document.operation.impl.DocOpUtil
 
@@ -82,7 +81,7 @@ class SwankProtocol(socket: Socket) extends Actor {
           val StringAtom(host) = map(key(":host"))
           val IntAtom(port) = map(key(":port"))
           
-          actorOf(this) ! InitConnection(protocol, host, port)
+          self.start() ! InitConnection(protocol, host, port)
         } else {
           // TODO
         }
@@ -93,22 +92,14 @@ class SwankProtocol(socket: Socket) extends Actor {
     
     case "swank:link-file" => form match {
       case SExpList(_ :: StringAtom(id) :: StringAtom(fileName) :: Nil) =>
-        actorOf(this) ! LinkFile(id, fileName)
+        self ! LinkFile(id, fileName)
       
       case _ => // TODO
     }
   
     case "swank:edit-file" => form match {
-      case SExpList(_ :: StringAtom(fileName) :: (opForm: SExpList) :: Nil) => {
-        val rawOp = new DocOp {
-          def apply(c: DocOpCursor) {
-            parseOp(c, opForm.items.toList)
-          }
-        }
-        
-        val op = Op(UUID.randomUUID().toString, 0, 1, DocOpUtil.buffer(rawOp))
-        actorOf(this) ! EditFile(fileName, op)
-      }
+      case SExpList(_ :: StringAtom(fileName) :: (opForm: SExpList) :: Nil) =>
+        self ! EditFile(fileName, parseOp(opForm.items.toList))
       
       case _ => // TODO
     }
@@ -120,23 +111,17 @@ class SwankProtocol(socket: Socket) extends Actor {
     case _ => // TODO
   }
 
-  def parseOp(c: DocOpCursor, form: List[SExp]): Op = form match {
-    case KeywordAtom(":retain") :: IntAtom(length) :: tail => {
-      c.retain(length)
-      parseOp(c, tail)
-    }
+  def parseOp(form: List[SExp], op: Op = Op(0)): Op = form match {
+    case KeywordAtom(":retain") :: IntAtom(length) :: tail =>
+      parseOp(tail, op.retain(length))
     
-    case KeywordAtom(":insert") :: StringAtom(text) :: tail => {
-      c.characters(text)
-      parseOp(c, tail)
-    }
+    case KeywordAtom(":insert") :: StringAtom(text) :: tail =>
+      parseOp(tail, op.chars(text))
     
-    case KeywordAtom(":delete") :: StringAtom(text) :: tail => {
-      c.deleteCharacters(text)
-      parseOp(c, tail)
-    }
+    case KeywordAtom(":delete") :: StringAtom(text) :: tail =>
+      parseOp(tail, op.delete(text))
     
-    case _ => sys.error("TODO")
+    case Nil => op
   }
   
   def marshallOp(op: Op): SExp = {
