@@ -3,6 +3,7 @@ package agent
 
 import akka.actor.{Actor, ActorRef}
 
+import java.io.StringWriter
 import java.net.Socket
 import java.util.UUID
 
@@ -30,22 +31,38 @@ class SwankProtocol(socket: Socket) extends Actor {
   var files = Map[String, ActorRef]()
   
   def receive = {
-    case InitConnection(protocol, host, port) =>
+    case InitConnection(protocol, host, port) => {
+      println("Initializing connection: %s://%s:%d".format(protocol, host, port))
       channel = actorOf(new ServerChannel(protocol, host, port))
+    }
     
     case LinkFile(id, fileName) => {
       if (channel != null) {
+        println("Linking file: %s -> %s".format(id, fileName))
         files = files.updated(fileName, actorOf(new ClientFileActor(id, fileName, self, channel)).start())
       }
     }
     
-    case EditFile(fileName, op) => files get fileName foreach { _ ! op }
+    case EditFile(fileName, op) => {
+      val writer = new StringWriter
+      OpFormat.write(Vector(op), writer)
+      println(">>> Client Op: " + writer.toString)
+      
+      files get fileName foreach { _ ! op }
+    }
     
-    case EditPerformed(fileName, op) =>
-      send(SExp(key(":edit-performed"), fileName, marshallOp(op)).toWireString)
+    case EditPerformed(fileName, op) => {
+      val writer = new StringWriter
+      OpFormat.write(Vector(op), writer)
+      println("<<< Server Op: " + writer.toString)
+      
+      agent.send(SExp(key(":edit-performed"), fileName, marshallOp(op)).toWireString)
+    }
   }
 
   def receiveData(chunk: String) {
+    println("Handling chunk: " + chunk)
+    
     SExp.read(new CharSequenceReader(chunk)) match {
       case SExpList(KeywordAtom(":swank-rpc") :: (form @ SExpList(SymbolAtom(name) :: _)) :: IntAtom(callId) :: _) => {
         handleRPC(name, form, callId)
