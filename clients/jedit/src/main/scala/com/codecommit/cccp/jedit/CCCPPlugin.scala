@@ -55,7 +55,7 @@ object CCCPPlugin {
   
   private def init() {
     Backend.start()(receive)
-    sendRPC(SExp(key(":init-connection"), SExp(key(":protocol"), Protocol, key(":host"), Host, key(":port"), Port)), callId())
+    sendRPC(SExp(key("swank:init-connection"), SExp(key(":protocol"), Protocol, key(":host"), Host, key(":port"), Port)), callId())
   }
   
   private def shutdown() {
