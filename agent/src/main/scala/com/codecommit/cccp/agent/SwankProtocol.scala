@@ -21,7 +21,10 @@ class SwankProtocol(socket: Socket) extends Actor {
   import SExp._
   import SwankProtocol._
   
-  val agent = new AsyncSocketAgent(socket, receiveData, { _ => })        // TODO error handling
+  val agent = new AsyncSocketAgent(socket, receiveData, { msg =>
+    println("ERROR!!!  " + msg)
+    System.exit(-1)
+  })
   
   @volatile
   var channel: ActorRef = _
@@ -55,7 +58,7 @@ class SwankProtocol(socket: Socket) extends Actor {
       OpFormat.write(Vector(op), writer)
       println("<<< Server Op: " + writer.toString)
       
-      agent.send(SExp(key(":edit-performed"), fileName, marshallOp(op)).toWireString)
+      dispatchSExp(SExp(key(":edit-performed"), fileName, marshallOp(op)))
     }
   }
 
@@ -64,10 +67,14 @@ class SwankProtocol(socket: Socket) extends Actor {
     
     SExp.read(new CharSequenceReader(chunk)) match {
       case SExpList(KeywordAtom(":swank-rpc") :: (form @ SExpList(SymbolAtom(name) :: _)) :: IntAtom(callId) :: _) => {
-        handleRPC(name, form, callId)
+        try {
+          handleRPC(name, form, callId)
+        } catch {
+          case t => sendRPCError(ErrExceptionInRPC, t.getMessage, callId)
+        }
       }
       
-      case _ =>     // TODO
+      case _ => sendProtocolError(ErrUnrecognizedForm, chunk)
     }
   }
   
@@ -77,38 +84,50 @@ class SwankProtocol(socket: Socket) extends Actor {
         val map = conf.toKeywordMap
         
         if (map.contains(key(":host")) && map.contains(key(":port"))) {
-          val StringAtom(protocol) = map.getOrElse(key(":protocol"), "http")
+          val StringAtom(protocol) = map.getOrElse(key(":protocol"), StringAtom("http"))
           val StringAtom(host) = map(key(":host"))
           val IntAtom(port) = map(key(":port"))
           
           self.start() ! InitConnection(protocol, host, port)
         } else {
-          // TODO
+          sendMalformedCall(name, form, callId)
         }
       }
       
-      case _ => // TODO
+      case _ => sendMalformedCall(name, form, callId)
     }
     
     case "swank:link-file" => form match {
       case SExpList(_ :: StringAtom(id) :: StringAtom(fileName) :: Nil) =>
         self ! LinkFile(id, fileName)
       
-      case _ => // TODO
+      case _ => sendMalformedCall(name, form, callId)
     }
   
     case "swank:edit-file" => form match {
       case SExpList(_ :: StringAtom(fileName) :: (opForm: SExpList) :: Nil) =>
         self ! EditFile(fileName, parseOp(opForm.items.toList))
       
-      case _ => // TODO
+      case _ => sendMalformedCall(name, form, callId)
     }
   
     case "swank:shutdown" => System.exit(0)
   
     // TODO more calls
   
-    case _ => // TODO
+    case _ => sendRPCError(ErrUnrecognizedRPC, "Unknown :swank-rpc call: " + form, callId)
+  }
+  
+  def sendMalformedCall(callType: String, form: SExp, callId: Int) {
+    sendRPCError(ErrMalformedRPC, "Malformed %s call: %s".format(callType, form), callId)
+  }
+
+  def sendRPCError(code: Int, detail: String, callId: Int) {
+    dispatchSExp(SExp(key(":return"), SExp(key(":abort"), code, detail), callId))
+  }
+
+  def sendProtocolError(code: Int, detail: String) {
+    dispatchSExp(SExp(key(":reader-error"), code, detail))
   }
 
   def parseOp(form: List[SExp], op: Op = Op(0)): Op = form match {
@@ -138,15 +157,25 @@ class SwankProtocol(socket: Socket) extends Actor {
   }
   
   def dispatchReturn(callId: Int, form: SExp) {
-    dispatchData(SExp(key(":return"), SExp(key(":ok"), form, callId)).toWireString)
+    dispatchSExp(SExp(key(":return"), SExp(key(":ok"), form, callId)))
+  }
+  
+  def dispatchSExp(form: SExp) {
+    agent.send(form.toWireString)
   }
   
   def dispatchData(chunk: String) {
+    println("Sending chunk: " + chunk)
     agent.send(chunk)
   }
 }
 
 object SwankProtocol {
+  val ErrExceptionInRPC = 201
+  val ErrMalformedRPC = 202
+  val ErrUnrecognizedForm = 203
+  val ErrUnrecognizedRPC = 204
+  
   case class InitConnection(protocol: String, host: String, port: Int)
   case class LinkFile(id: String, fileName: String)
   case class EditFile(fileName: String, op: Op)
