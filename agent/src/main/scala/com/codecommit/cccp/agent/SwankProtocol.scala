@@ -32,7 +32,7 @@ class SwankProtocol(socket: Socket) extends Actor {
   def receive = {
     case InitConnection(protocol, host, port) => {
       println("Initializing connection: %s://%s:%d".format(protocol, host, port))
-      channel = actorOf(new ServerChannel(protocol, host, port))
+      channel = actorOf(new ServerChannel(protocol, host, port)).start()
     }
     
     case LinkFile(id, fileName) => {
