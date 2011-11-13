@@ -170,9 +170,12 @@ Agent API
   ordered property list of the form ``(:key1 value1 :key2 value2)``.  The exact
   schema for this property list should be as follows:
   
-  * ``:retain`` – Must correspond to an integer value.  Specifies an offset into the file.
-  * ``:insert`` – Must correspond to a string value.  Specifies a text string to insert at the current location.
-  * ``:delete`` – Must correspond to a string value.  Specifies a text string to delete from the current location.
+  * ``:retain`` – Must correspond to an integer value.  Specifies an offset into
+    the file.
+  * ``:insert`` – Must correspond to a string value.  Specifies a text string to
+    insert at the current location.
+  * ``:delete`` – Must correspond to a string value.  Specifies a text string to
+    delete from the current location.
   
   There are a few things that are important to understand about this format.  First,
   the offsets must span the *entire* file.  Thus, if you add up all of the ``:retain``
@@ -225,7 +228,123 @@ Agent API
 Gory Details
 ============
 
-*TODO*
+CCCP fully implements an optimistic concurrency control mechanism called "operational
+transformation".  This is what allows real-time collaborative editing on a single
+document to proceed without each editor waiting for a server round-trip before
+inserting or removing characters.  Before we dive into how this works, we need
+to establish a little vocabulary:
+
+* **operation** – a command to change the edit buffer consisting of zero or more
+  *actions* applied in a cursor style, spanning the entire buffer
+* **action** – an individual component of an *operation*, indicating that text
+  should be added or removed (depending on the action type)
+* **transformation** – the process of adjusting or "fixing" operations to that
+  they can be reordered between clients without affecting the net composite
+* **composition** – the process of taking two operations that apply to the same
+  document and deriving one operation which represents the net change of the two
+  when applied to the original document
+* **client** – the editor itself
+* **agent** – the editor sub-process which handles the client-side work
+* **server** – the server process which handles the server-side work
+* **document** – a term I will use interchangably with *edit buffer*
+
+The fundamental problem with real-time collaborative editing is that changes are
+occuring simultaneously at various positions in the document.  Each editor needs
+to apply its operations locally without delay.  This is a critical "feature" as
+it is what allows input responsiveness in the client.  Unfortunately, if editor
+**A** inserts two characters at offset 12 while simultaneously editor **B** inserts
+five characters at offset 20, there is potential for document corruption.
+
+This is really the classic diamond problem in concurrency control.  Editor **A**
+applies its operation locally and sends it to **B**.  Meanwhile, editor **B**
+applies its operation locally and sends it to editor **A**.  However, when editor
+**A** attempts to apply the operation from editor **B**, it will perform the
+insertion at offset 20, which is *not* the location in the document that **B**
+intended.  The actual intended location has become offset 22 due to the two new
+characters inserted by **A** prior to receiving the operation from **B**.  This
+is the problem that OT solves.
+
+The first step in solving this problem is to handle the simple diamond problem
+illustrated above.  Two editors apply operations *a* and *b* simultaneously.
+We need to derive two transformed operations *a'* and *b'* such that *a + b'* =
+*b + a'*.  This process is mostly just adjusting offsets and shuffling text in
+one direction or another, and it is fully implemented by the Wave OT algorithm.
+The exact details of this process are beyond the scope of this README.
+
+There is one slight niggling detail here: what happens if we have *three* editors,
+**A**, **B** and **C**?  A key insight of the Jupiter collaboration system (the
+primary theoretical foundation for Wave) is that it is possible to collapse this
+problem into the two-editor case by introducing a client-server architecture.
+Effectively, there are only ever two editors at a time: the client and the server.
+When operations are applied on the server, they are mirrored back to every other
+client.  This also provides a uniform way of resolving conflicts: just find in
+favor of the server every time.  Naturally, this is a race condition, and it may
+result in unexpected document states surrounding simultaneous edits at the *same*
+offset, but the point is that the document states will be uniform across *all*
+clients, and so users are able to simply cursor back and "fix" the change as they
+see fit.
+
+Unfortunately, solving the one-step diamond is insufficient to enable real-time
+collaborative editing.  The reason for this is best illustrated with an example.
+Editor **A** applies an operation *a1* and then immediately follows it up with *a2*.
+Perhaps **A** is typing at more than one or two characters per second.  Meanwhile,
+the server has applied an operation from editor **B**, *b1*.  **A** sends *a1* to
+the server while the server simultaneously sends *b1* to **A**.  This will result
+in an application of OT to derive *a1'* (on the server) and *b1'* (on the client),
+and that's all well and good.  However, **A** also needs to send operation *a2*
+to the server, and this is where we hit a snag.
+
+The problem is that *a2* is an operation that applies to the document state following
+*a1*, *not* respecting *b1*!  Thus, *a2* requires a document state that the server
+does not have.  **A** will send *a2* to the server and the server will be unable
+to apply, transform or otherwise make use of the operation, resulting in editor
+state corruption.
+
+There are two ways to solve this problem.  The first, and the one used by Jupiter
+and almost every other OT-based collaborative system is for the server to track
+every individual client's state in vector space.  Basically, the server must not
+only apply *a1'* to its internal state, it must also apply *a1* to an *earlier*
+state, creating an in-memory fork of the server state that will be preserved until
+**A** comes back into sync with the server.  In the case where multiple editors
+are typing simultaneously, this could potentially take a very long time.  The
+*normal* state for editors using OT is to be walking entirely different state
+spaces from each other, only coming back into full sync once everything "calms down".
+This produces a very nice user experience, but it also means that the server
+would need to track the full (and potentially lengthy) histories for every single
+client, producing a large amount of overhead.
+
+This doesn't scale well.  Google's key innovation with Wave was to restrict client
+behavior so that **A** can never send *a2* directly to the server.  Instead, **A**
+must wait for the confirmation that the server has applied *a1*, at which point
+**A** will use the operations it has received from the server in the interim to
+infer the current state of the server's document and edit history.  Using this
+information, **A** will transform *a2* into *a2'* and send *that* operation to
+the server.  Now, the server may still need to transform *a2'* against subsequent
+operations that hadn't been received by **A** at the time of transmission, but
+that's not a problem.  As long as *a2'* is rooted in server state space, the
+server will be able to perform this transformation and will only need to track
+its own history.
+
+In terms of version control systems, you can think of this like the clients
+constantly rebasing their history against a central repository, rather than pushing
+an *entire* branch and attempting to merge at the end.  It's a great deal more
+work for the clients, but it means that the server only needs to maintain a
+linear history, regardless of the number of clients.
+
+Unfortunately, Wave doesn't provide this for us.  Its code for this purpose is
+Wave-specific, and so cannot be repurposed for other things.  For this reason,
+CCCP has to provide its own implementation of this logic (``state.scala``).
+
+At the end of the day, the result is a collaborative editing system
+that allows character-by-character changes to be shared in real time across *any*
+number of clients with varying latencies.  The protocol heals itself and degrades
+gracefully, chunking together updates when the server is taking a long time to
+report back with the confirmation of the previous operation.  This self-healing
+is so flexible that you can actually take your editor completely offline for any
+length of time!  The edits will simply buffer up, awaiting confirmation.  Once
+the network connection is reestablished, the confirmation will finally arrive,
+the buffer will flush to the server in one chunk and everything will sync-up once
+again.
 
 
 .. _jEdit: http://jedit.org
