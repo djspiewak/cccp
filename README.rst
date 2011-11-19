@@ -163,6 +163,20 @@ Agent API
   maintain its own internal mapping from file names to identifiers.
   
   This call must be made prior to editing the file and can only be made once.
+  Note that it is possible to relink buffers after having previously unlinked
+  them.  However, this requires that the buffer be in *exactly* the same state as
+  any buffers that remained linked, or the same state as the last buffer to be
+  unlinked at the point at which it was unlinked.  Generally speaking, it is just
+  safer to link on a fresh identifier when relinking a buffer.
+* ``(swank:unlink-file file-name)``
+  
+  Removes a linkage for a particular file.  Remote updates will not be
+  propagated to the buffer once this call has run.  This also frees any resources
+  in the agent that are associated with the linkage.  Please note that in cases
+  of high-latency, there may be changes local to the agent that have not yet
+  transmitted to the server.  These changes will *not* be sent if ``unlink-file``
+  happens before such time as that is possible.  The editor local buffer will
+  still have the changes, but they will never reach the server.
 * ``(swank:edit-file file-name (...))``
 
   This is the most important API call.  This call should be made on every buffer

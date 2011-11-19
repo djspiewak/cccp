@@ -1,7 +1,7 @@
 package com.codecommit.cccp
 package agent
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, PoisonPill}
 
 import java.io.StringWriter
 import java.net.Socket
@@ -43,6 +43,11 @@ class SwankProtocol(socket: Socket) extends Actor {
         println("Linking file: %s -> %s".format(id, fileName))
         files = files.updated(fileName, actorOf(new ClientFileActor(id, fileName, self, channel)).start())
       }
+    }
+    
+    case UnlinkFile(fileName) => {
+      files get fileName foreach { _ ! PoisonPill }
+      files -= fileName
     }
     
     case EditFile(fileName, op) => {
@@ -103,6 +108,13 @@ class SwankProtocol(socket: Socket) extends Actor {
       
       case _ => sendMalformedCall(name, form, callId)
     }
+    
+    case "swank:unlink-file" => form match {
+      case SExpList(_ :: StringAtom(fileName) :: Nil) =>
+        self ! UnlinkFile(fileName)
+      
+      case _ => sendMalformedCall(name, form, callId)
+    }
   
     case "swank:edit-file" => form match {
       case SExpList(_ :: StringAtom(fileName) :: (opForm: SExpList) :: Nil) =>
@@ -110,7 +122,7 @@ class SwankProtocol(socket: Socket) extends Actor {
       
       case _ => sendMalformedCall(name, form, callId)
     }
-  
+    
     case "swank:shutdown" => System.exit(0)
   
     // TODO more calls
@@ -178,5 +190,6 @@ object SwankProtocol {
   
   case class InitConnection(protocol: String, host: String, port: Int)
   case class LinkFile(id: String, fileName: String)
+  case class UnlinkFile(fileName: String)
   case class EditFile(fileName: String, op: Op)
 }
