@@ -101,7 +101,7 @@ object CCCPPlugin {
     })
   }
   
-  private def applyActions(fileName: String, actions: Set[EditorAction]) {
+  private def applyActions(fileName: String, actions: Seq[EditorAction]) {
     val view = JEdit.getActiveView
     val buffer = JEdit.openFile(view, fileName)
     
@@ -150,10 +150,10 @@ object CCCPPlugin {
       case SExpList(KeywordAtom(":edit-performed") :: StringAtom(fileName) :: (form: SExpList) :: Nil) => {
         val components = unmarshallOp(form.items.toList)
         
-        val (_, actions) = components.foldLeft((0, Set[EditorAction]())) {
+        val (_, actions) = components.foldLeft((0, Vector[EditorAction]())) {
           case ((offset, acc), Retain(length)) => (offset + length, acc)
-          case ((offset, acc), Insert(text)) => (offset + text.length, acc + InsertAt(offset, text))
-          case ((offset, acc), Delete(text)) => (offset + text.length, acc + DeleteAt(offset, text))
+          case ((offset, acc), Insert(text)) => (offset + text.length, acc :+ InsertAt(offset, text))
+          case ((offset, acc), Delete(text)) => (offset + text.length, acc :+ DeleteAt(offset, text))
         }
         
         EventQueue.invokeLater(new Runnable {
