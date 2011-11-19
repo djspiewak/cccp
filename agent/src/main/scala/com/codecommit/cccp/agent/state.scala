@@ -39,7 +39,6 @@ case class AwaitingWithBuffer(outstanding: Op, buffer: Op, version: Int) extends
   
   def applyServer(op: Op) = {
     if (op.id == outstanding.id) {
-      assert(op.version == outstanding.version)
       Send(buffer, AwaitingConfirm(buffer, op.version))
     } else {
       val pair = Transformer.transform(outstanding.delta, op.delta)
