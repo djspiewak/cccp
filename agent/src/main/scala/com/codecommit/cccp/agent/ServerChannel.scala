@@ -21,7 +21,10 @@ class ServerChannel(protocol: String, host: String, port: Int) extends Actor {
   
   def receive = {
     case PerformEdit(id, op, delay) => {
-      client.post("/" + id + "/")(opToChunk(Vector(op))) ifCanceled { _ =>
+      val chunk = opToChunk(Vector(op))
+      println("Sending chunk to server: " + (chunk.data map { _.toChar } mkString))
+      
+      client.post("/" + id + "/")(chunk) ifCanceled { _ =>
         val delay2 = math.max(delay * 2, MaxDelay)
         val randomDelay = (math.random * delay).toInt
         Scheduler.scheduleOnce(self, PerformEdit(id, op, delay2), randomDelay, TimeUnit.MILLISECONDS)
@@ -41,6 +44,8 @@ class ServerChannel(protocol: String, host: String, port: Int) extends Actor {
         if (content.data.isEmpty) {
           self ! Poll(id, version, callback)
         } else {
+          println("Received chunk from server:\n  " + (content.data map { _.toChar } mkString).replace("\n", "\n  "))
+          
           val ops = chunkToOp(content)
           callback ! EditsPerformed(id, ops)
         }
