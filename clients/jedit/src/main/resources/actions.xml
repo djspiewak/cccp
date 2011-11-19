@@ -6,4 +6,9 @@
             com.codecommit.cccp.jedit.CCCPPlugin.link(view);
         </CODE>
     </ACTION>
+    <ACTION NAME="cccp.unlink">
+        <CODE>
+            com.codecommit.cccp.jedit.CCCPPlugin.unlink(view);
+        </CODE>
+    </ACTION>
 </ACTIONS>

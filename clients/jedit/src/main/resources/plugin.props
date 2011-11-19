@@ -2,7 +2,7 @@ plugin.com.codecommit.cccp.jedit.CCCPPlugin.activate=defer
 plugin.com.codecommit.cccp.jedit.CCCPPlugin.name=CCCP
 plugin.com.codecommit.cccp.jedit.CCCPPlugin.author=Daniel Spiewak
 plugin.com.codecommit.cccp.jedit.CCCPPlugin.version=0.1
-# plugin.com.codecommit.cccp.jedit.CCCPPlugin.jars=scala-library.jar
+plugin.com.codecommit.cccp.jedit.CCCPPlugin.jars=scala-library.jar
 
 plugin.com.codecommit.cccp.jedit.CCCPPlugin.option-group=cccp
 
@@ -10,8 +10,10 @@ plugin.com.codecommit.cccp.jedit.CCCPPlugin.option-group=cccp
 # options.cccp.code=new com.codecommit.cccp.jedit.ui.EnsimeOptionPane();
 
 plugin.com.codecommit.cccp.jedit.CCCPPlugin.menu=cccp.link
+plugin.com.codecommit.cccp.jedit.CCCPPlugin.menu=cccp.unlink
 
 options.menu.label=CCCP
 
 # CCCP
 cccp.link.label=Link File...
+cccp.unlink.label=Unlink File

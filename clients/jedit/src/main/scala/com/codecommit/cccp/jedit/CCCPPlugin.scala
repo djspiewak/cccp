@@ -101,6 +101,21 @@ object CCCPPlugin {
     })
   }
   
+  def unlink(view: View) {
+    val buffer = view.getBuffer
+    val fileName = new File(buffer.getPath).getAbsolutePath
+    
+    EventQueue.invokeLater(new Runnable {
+      def run() {
+        val confirm = JOptionPane.showConfirmDialog(view, "Are you sure you wish to unlink the buffer?  You should not attempt to relink on the same identifier following an unlink.", "Are you sure?", JOptionPane.YES_NO_OPTION)
+        
+        if (confirm == JOptionPane.YES_OPTION) {
+          sendRPC(SExp(key("swank:unlink-file"), fileName), callId())
+        }
+      }
+    })
+  }
+  
   private def applyActions(fileName: String, actions: Seq[EditorAction]) {
     val view = JEdit.getActiveView
     val buffer = JEdit.openFile(view, fileName)
