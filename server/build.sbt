@@ -41,7 +41,7 @@ stage <<= (dependencyClasspath in Runtime, exportedProducts in Runtime) map { (d
   }
   // Expand the server invocation script templates.
   writeScript(cpLibs.mkString(":").replace("\\", "/"), "server/bin/cccp-server", "server/dist/bin/cccp-server")
-  writeScript("\"" + cpLibs.mkString(";").replace("/", "\\") + "\"", "server/bin/cccp-server.bat", "server/dist/bin/cccp-server.bat")
+  writeScript("\"" + cpLibs.map{lib => "%~dp0/../" + lib}.mkString(";").replace("/", "\\") + "\"", "server/bin/cccp-server.bat", "server/dist/bin/cccp-server.bat")
   // copyFile(root / "README.md", root / "dist" / "README.md")
   // copyFile(root / "LICENSE", root / "dist" / "LICENSE")
 }

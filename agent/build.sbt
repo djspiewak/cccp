@@ -41,7 +41,7 @@ stage <<= (dependencyClasspath in Runtime, exportedProducts in Runtime) map { (d
   }
   // Expand the server invocation script templates.
   writeScript(cpLibs.mkString(":").replace("\\", "/"), "agent/bin/server", "agent/dist/bin/server")
-  writeScript("\"" + cpLibs.mkString(";").replace("/", "\\") + "\"", "agent/bin/server.bat", "agent/dist/bin/server.bat")
+  writeScript("\"" + cpLibs.map{lib => "%~dp0/../" + lib}.mkString(";").replace("/", "\\") + "\"", "agent/bin/server.bat", "agent/dist/bin/server.bat")
   // copyFile(root / "README.md", root / "dist" / "README.md")
   // copyFile(root / "LICENSE", root / "dist" / "LICENSE")
 }
