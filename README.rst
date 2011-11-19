@@ -3,6 +3,7 @@ cross-editor real-time, character by character collaboration (a la SubEthaEdit,
 Gobby or Google Docs).  Support is currently provided for the following editors:
 
 * jEdit_
+* Emacs_ (via the cccp-mode_)
 
 The editor-specific plugins are extremely tiny and merely delegate all work to an
 editor-agnostic sub-process.  This means that it should be extremely easy to
@@ -362,6 +363,8 @@ again.
 
 
 .. _jEdit: http://jedit.org
+.. _Emacs: http://www.gnu.org/s/emacs/
+.. _cccp-mode: https://github.com/candera/cccp-mode
 .. _SBT: https://github.com/harrah/xsbt/wiki
 .. _BlueEyes: https://github.com/jdegoes/blueeyes
 .. _Netty: http://www.jboss.org/netty
