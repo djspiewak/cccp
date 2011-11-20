@@ -239,6 +239,26 @@ Agent API
   the ``swank:shutdown`` call gives the agent a chance to clean up registrations
   on the server.
 
+Callbacks
+---------
+
+In order for changes to be pushed back from the server to the client, the agent
+must make a call proactively to the client, not as a response to any particular
+message.  This must also happen for things like errors, malformed messages and
+similar.  SWANK provides a mechanism for reporting errors on specific calls, and
+thus the only callbacks which are unique (and require documentation) are those
+synthesized by the agent.  Currently, there is only one of these:
+
+* ``(:edit-performed file-name (...))``
+  
+  This call indicates that an operation has been applied to the given file, and
+  that operation is represented by the specified form.  The format used to
+  represent an operation is the same as the one used by the ``swank:edit-file``
+  RPC.  Note that this call will only take place for operations which *need* to
+  be applied to the local buffer.  Thus, local operations (which are already in
+  the buffer) will not result in this callback, only remote operations.  These
+  remote operations will have already passed through the OT process, and thus
+  should be directly insertable into the local buffer.
 
 Gory Details
 ============
