@@ -1,16 +1,14 @@
 package com.codecommit.cccp
 package jedit
 
-import org.gjt.sp.jedit
-import jedit.{jEdit => JEdit, AbstractOptionPane}
-import jedit.browser.VFSFileChooserDialog
-
 import java.awt.BorderLayout
 import java.awt.event.{ActionEvent, ActionListener}
-
 import javax.swing._
+import org.gjt.sp.jedit
+import org.gjt.sp.jedit.{AbstractOptionPane, jEdit => JEdit}
+import org.gjt.sp.jedit.browser.VFSFileChooserDialog
 
-class CCCPOptionPane extends AbstractOptionPane("ensime") {
+class CCCPOptionPane extends AbstractOptionPane("cccp") {
   private val homeField = new JTextField(CCCPPlugin.Home.getCanonicalPath)
   private val protocolField = new JTextField(CCCPPlugin.Protocol)
   private val hostField = new JTextField(CCCPPlugin.Host)
