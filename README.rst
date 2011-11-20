@@ -42,6 +42,10 @@ instructions on how to get running here: https://github.com/harrah/xsbt/wiki/Get
 Essentially all you need to do is launch the ``sbt-launch.jar`` file in the project
 directory.
 
+If you don't feel like installing from source, you can use the pre-built binaries
+available in the Downloads section.  Binaries are available for both the server
+and the agent.
+
 The server process is a very straight forward HTTP server built on BlueEyes_,
 which is in turn built on Netty_.  When you launch its process, you will need to
 pass the ``--configFile <file>`` option, where ``<file>`` is replaced with your
