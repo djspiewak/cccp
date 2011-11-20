@@ -104,7 +104,97 @@ will need to unlink that buffer, change the file and then relink when you are do
 jEdit
 -----
 
-*TODO*
+First, you need to install the CCCP plugin.  The best way to do this (right now)
+is to install from source.  To do this, clone the project, ``cd`` to the root of
+the project directory and run the following commands::
+    
+    $ sbt
+    > project cccp-jedit-client
+    > stage
+    > exit
+    $ cd clients/jedit/
+    $ ./local-deploy.sh
+    
+This assumes that you have set the ``JEDIT_HOME`` environment variable.  Once
+you have performed these steps, the plugin will be installed and ready to use in
+your jEdit installation (note: jEdit may be open during this time).  To activate
+the plugin, open up the Plugin Manager (action ``plugin-manager``) and activate
+``CCCP.jar``.
+
+Alternatively, if you prefer not to install from source, you can use the pre-built
+binary provided in this project's Downloads section.  Note that this binary may
+be slightly out of date, depending on whether or not I have remembered to update
+it.  Copy this JAR file to the ``jars/`` directory in your jEdit settings directory.
+Note that you must also copy the ``scala-library.jar`` file from the Scala 2.9.1
+distribution.  Make sure it is *exactly* this version!  If you have another plugin
+that depends on Scala, well, let's hope it depends on the same version.
+
+Once you have the plugin up and running, the first thing you should do is configure
+it settings.  Open up Plugin Options (action ``plugin-options``) and navigate to
+the CCCP pane (note that the UI here is a work in progress).  You need to set
+four settings:
+
+* **CCCP Agent Home** – This should be the directory containing the CCCP agent
+  distribution.  You can obtain this from the Downloads area, or built the agent
+  from source using the ``stage`` task.
+* **Protocol** – This should be either ``http`` or ``https``.  Don't try to get
+  cute with ``spdy`` or ``rsync``, they will not work!  This is the protocol used
+  to transfer data from the agent to the server.
+* **Host** – The host name (or IP) hosting the CCCP server instance.  Note that
+  IPv6 is supported, but you should bracket the address to avoid any ambiguity.
+* **Port** – The port number on which the CCCP server is listening.
+
+Once you save the settings, jEdit will reset the CCCP agent!  This means that any
+currently-linked buffers will be unlinked.
+
+Linking
+~~~~~~~
+
+Whenever you want to collaborate on a particular buffer, you must *link* that
+buffer with the server.  When you link with the server, you will choose a unique
+identifier for this buffer.  Your collaborators will link with your buffer by
+simply linking with the server using this exact same identifier.
+
+Before you link, you should ensure that your buffer is in a known "start" state.
+Starting from a clean Git revision that is shared with your collaborators is a
+good way to go.  Any changes made to your buffer after linking will be forwarded
+to the server.  This way, collaborators are free to link with the server using
+the same buffer id at any point (even after you have been editing for a while).
+The important point is that their buffer is in the *exact* same start state as
+your buffer started in.  A simple workflow might go as follows:
+
+1. **User A** checks out commit ``cafebabe``
+2. **User A** opens file ``Foo.scala`` and links the buffer using id ``foo-scala``
+3. **User A** starts editing ``Foo.scala`` (note that the save action is not
+   significant and may be performed at will)
+4. **User B** checks out commit ``cafebabe``
+5. **User A** is still editing, saving, committing, and generally being productive
+6. **User B** opens file ``Foo.scala`` and links the buffer using id ``foo-scala``
+7. All of the changes performed by **User A** since linking the buffer initially
+   will be performed on **User B**'s buffer.  Note that **User B** does not need
+   to wait for this to happen; s/he is free to start editing immediately
+8. After a little bit of syncing, **User A** and **User B** will be in perfect
+   sync and will see each other's edits in real-time, character-by-character
+9. Eventually, **User A** decides s/he has had enough of this collaboration
+   nonsense and unlinks the buffer
+10. **User B** can continue editing, with the changes being forwarded to the server.
+    Since **User A** has unlinked, its edits will not be forwarded to the server
+    and thus not shared with **User B**.  Likewise, the edits from **User B** will
+    not be forwarded to **User A**.
+
+At the end of this string of events, **User A** may reconsider unlinking and want
+to relink with the server.  In order to do this without corrupting the local state,
+**User A** must first discard all local changes and revert back to commit ``cafebabe``.
+Once they link, *all* changes (including those performed by **User A**) will be
+reapplied to the buffer, bringing it back into sync with the current collaborative
+state.
+
+The core concept to understand is that the server maintains a list of deltas which
+will take a buffer from a single starting state to the current shared state.  If
+a user attempts to apply those deltas to a starting state other than the starting
+state assumed by the server, the result will be a buffer that is permanently out
+of sync.  Collaborative edits performed on this buffer will likely be rejected by
+the server and thus never forwarded onto other users.
 
 
 Agent Protocol
