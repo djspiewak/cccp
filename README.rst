@@ -482,6 +482,8 @@ again.
 .. _SBT: https://github.com/harrah/xsbt/wiki
 .. _BlueEyes: https://github.com/jdegoes/blueeyes
 .. _Netty: http://www.jboss.org/netty
+.. _SLIME: http://common-lisp.net/project/slime/
+.. _ENSIME: https://github.com/aemoncannon/ensime
 .. _OT: http://www.codecommit.com/blog/java/understanding-and-applying-operational-transformation
 .. _this article on OT: http://www.codecommit.com/blog/java/understanding-and-applying-operational-transformation
 .. _the documentation: http://wave-protocol.googlecode.com/hg/whitepapers/operational-transform/operational-transform.html
