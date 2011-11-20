@@ -34,12 +34,17 @@ class CCCPPlugin extends EBPlugin {
 object CCCPPlugin {
   import SExp._
   
-  val Home = new File("/Users/daniel/Development/Scala/cccp/agent/dist/")
-  val Backend = new Backend(Home, fatalServerError)
+  val HomeProperty = "cccp.home"
+  val ProtocolProperty = "cccp.protocol"
+  val HostProperty = "cccp.host"
+  val PortProperty = "cccp.port"
   
-  val Protocol = "http"
-  val Host = "localhost"
-  val Port = 8585
+  def Home = new File(Option(JEdit.getProperty(HomeProperty)) getOrElse "/Users/daniel/Development/Scala/cccp/agent/dist/")
+  var Backend = new Backend(Home, fatalServerError)
+  
+  def Protocol = Option(JEdit.getProperty(ProtocolProperty)) getOrElse "http"
+  def Host = Option(JEdit.getProperty(HostProperty)) getOrElse "localhost"
+  def Port = Option(JEdit.getProperty(PortProperty)) flatMap { s => try { Some(s.toInt) } catch { case _ => None } } getOrElse 8585
   
   @volatile
   private var _callId = 0
@@ -53,6 +58,13 @@ object CCCPPlugin {
     _callId
   }
   
+  // TODO make this more controlled
+  def reinit() {
+    shutdown()
+    Backend = new Backend(Home, fatalServerError)
+    init()
+  }
+  
   private def init() {
     Backend.start()(receive)
     sendRPC(SExp(key("swank:init-connection"), SExp(key(":protocol"), Protocol, key(":host"), Host, key(":port"), Port)), callId())
@@ -60,6 +72,7 @@ object CCCPPlugin {
   
   private def shutdown() {
     sendRPC(SExp(key("swank:shutdown")), callId())
+    Backend.stop()
   }
   
   def link(view: View) {
