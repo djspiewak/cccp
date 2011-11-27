@@ -24,7 +24,9 @@ class Backend(home: File, fatalServerError: String => Unit) {
     if (!isStarted) {
       portFile = File.createTempFile("cccp", ".port", TempDir)
       val logFile = File.createTempFile("cccp", ".log", TempDir)
-      val serverScript = new File(new File(home, "bin"), "server")
+      
+      val isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
+      val serverScript = new File(new File(home, "bin"), if (isWindows) "server.bat" else "server")
       
       val builder = new ProcessBuilder(serverScript.getAbsolutePath,  portFile.getCanonicalPath)
       
