@@ -7,7 +7,7 @@ import java.net.Socket
 import scala.io.Source
 
 class Backend(home: File, fatalServerError: String => Unit) {
-  val TempDir = new File("/tmp")
+  val TempDir = new File(System.getProperty("java.io.tmpdir"))
   
   private var isStarted = false
   
