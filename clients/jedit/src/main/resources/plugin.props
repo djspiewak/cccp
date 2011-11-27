@@ -9,8 +9,8 @@ plugin.com.codecommit.cccp.jedit.CCCPPlugin.option-group=cccp
 options.cccp.label=CCCP
 options.cccp.code=new com.codecommit.cccp.jedit.CCCPOptionPane();
 
-plugin.com.codecommit.cccp.jedit.CCCPPlugin.menu=cccp.link
-plugin.com.codecommit.cccp.jedit.CCCPPlugin.menu=cccp.unlink
+plugin.com.codecommit.cccp.jedit.CCCPPlugin.menu=cccp.link \
+  cccp.unlink
 
 options.menu.label=CCCP
 
