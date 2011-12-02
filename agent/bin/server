@@ -1,3 +1,6 @@
 #!/bin/sh
 
+THIS_DIR=`dirname $0`
+cd ${THIS_DIR}/..
+
 exec java -classpath <RUNTIME_CLASSPATH> com.codecommit.cccp.agent.Main $*
