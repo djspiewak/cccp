@@ -27,7 +27,7 @@ trait CCCPService extends BlueEyesServiceBuilder {
               get { request: HttpRequest[ByteChunk] =>
                 implicit val timeout = Actor.Timeout(2 * 60 * 1000)
                 
-                log.info("accessing history at a specific version")
+                log.info("accessing history at a version " + request.parameters('version))
                 
                 val response = files ? RequestHistory(request parameters 'id, request.parameters('version).toInt)
                 val back = new blueeyes.concurrent.Future[Option[ByteChunk]]
@@ -46,7 +46,7 @@ trait CCCPService extends BlueEyesServiceBuilder {
             } ~
             post { request: HttpRequest[ByteChunk] =>
               for (content <- request.content) {
-                log.info("applying operation(s)")
+                log.info("applying operation(s): " + (content.data map { _.toChar } mkString))
                 val ops = chunkToOp(content)
                 ops foreach { op => files ! PerformEdit(request parameters 'id, op) }
               }
