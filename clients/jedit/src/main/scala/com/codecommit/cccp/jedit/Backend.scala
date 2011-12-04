@@ -7,7 +7,8 @@ import java.net.Socket
 import scala.io.Source
 
 class Backend(home: File, fatalServerError: String => Unit) {
-  val TempDir = new File(System.getProperty("java.io.tmpdir"))
+  val IsWindows = System.getProperty("os.name").toLowerCase().contains("windows")
+  val TempDir = if (IsWindows) new File(System.getProperty("java.io.tmpdir")) else new File("/tmp")
   
   private var isStarted = false
   
@@ -25,8 +26,7 @@ class Backend(home: File, fatalServerError: String => Unit) {
       portFile = File.createTempFile("cccp", ".port", TempDir)
       val logFile = File.createTempFile("cccp", ".log", TempDir)
       
-      val isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
-      val serverScript = new File(new File(home, "bin"), if (isWindows) "server.bat" else "server")
+      val serverScript = new File(new File(home, "bin"), if (IsWindows) "server.bat" else "server")
       
       val builder = new ProcessBuilder(serverScript.getAbsolutePath,  portFile.getCanonicalPath)
       
