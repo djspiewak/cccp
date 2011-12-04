@@ -16,7 +16,7 @@ class ClientFileActor(id: String, fileName: String, callback: ActorRef, channel:
   def receive = {
     case op: Op => handleAction(state applyClient op)
     
-    case EditsPerformed(_, ops) if !ops.isEmpty => {
+    case EditsPerformed(_, ops) => {
       for (op <- ops) {
         handleAction(state applyServer op)
       }
