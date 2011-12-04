@@ -61,6 +61,8 @@ object OpFormat {
     var back = Vector[Op]()
     
     while (hasNext) {
+      hasNext = false
+      
       val id = readString(r)
       val parent = readInt(r)
       val version = readInt(r)
@@ -69,29 +71,40 @@ object OpFormat {
         def apply(c: DocOpCursor) {
           var next = r.read()
           while (next >= 0) {
-            next.toChar match {
+            val continue = next.toChar match {
               case '+' => {
                 r.read()        // TODO
                 c.characters(readString(r))
+                true
               }
               
-              case 'r' => c.retain(readInt(r))
+              case 'r' => {
+                c.retain(readInt(r))
+                true
+              }
               
               case '-' => {
                 r.read()        // TODO
                 c.deleteCharacters(readString(r))
+                true
+              }
+              
+              case '\n' => {
+                hasNext = true
+                false
               }
             }
-            next = r.read()
+            
+            if (continue)
+              next = r.read()
+            else
+              next = -1
           }
         }
       }
       
       val delta = DocOpUtil.buffer(unbuffered)
-      
       back = back :+ Op(id, parent, version, delta)
-      
-      hasNext = r.read() == '\n'
     }
     
     back
