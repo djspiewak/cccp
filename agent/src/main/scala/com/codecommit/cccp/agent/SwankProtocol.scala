@@ -173,7 +173,7 @@ class SwankProtocol(socket: Socket) extends Actor {
   }
   
   def dispatchSExp(form: SExp) {
-    agent.send(form.toWireString)
+    dispatchData(form.toWireString)
   }
   
   def dispatchData(chunk: String) {
