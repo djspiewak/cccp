@@ -203,7 +203,7 @@ object CCCPPlugin {
   private def unmarshallOp(form: List[SExp]): List[OpComponent] = {
     val components = form zip (form drop 1) collect { case (KeywordAtom(id), se) => (id, se) }
     components collect {
-      case (":retain", IntAtom(length)) => Retain(length)
+      case (":retain", IntAtom(length)) if length > 0 => Retain(length)
       case (":insert", StringAtom(text)) => Insert(text)
       case (":delete", StringAtom(text)) => Delete(text)
     }
