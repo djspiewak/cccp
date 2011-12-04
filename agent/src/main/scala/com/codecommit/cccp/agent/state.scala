@@ -11,7 +11,11 @@ sealed trait ClientState {
 }
 
 case class Synchronized(version: Int) extends ClientState {
-  def applyClient(op: Op) = Send(op.reparent(version), AwaitingConfirm(op, version))
+  def applyClient(op: Op) = {
+    val op2 = op.reparent(version)
+    Send(op2, AwaitingConfirm(op2, version))
+  }
+  
   def applyServer(op: Op) = Apply(op, Synchronized(op.version))
 }
 
