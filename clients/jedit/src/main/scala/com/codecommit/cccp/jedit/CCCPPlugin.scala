@@ -4,14 +4,11 @@ package jedit
 import java.awt.EventQueue
 import java.io.File
 import java.lang.ref.WeakReference
-
 import javax.swing.JOptionPane
-
 import org.gjt.sp.jedit
 import jedit.{Buffer, jEdit => JEdit, EBPlugin, View}
 import jedit.buffer.{BufferAdapter, JEditBuffer}
 import jedit.textarea.Selection
-
 import scala.util.parsing.input.CharSequenceReader
 
 class CCCPPlugin extends EBPlugin {
@@ -133,30 +130,22 @@ object CCCPPlugin {
     val view = JEdit.getActiveView
     val buffer = JEdit.openFile(view, fileName)
     
-    // val origSelection = area.getSelection
+    val field = classOf[JEditBuffer].getDeclaredField("undoInProgress")
+    field.setAccessible(true)
+    field.set(buffer, true)
     
-    actions foreach {
-      case InsertAt(offset, text) => buffer.insert(offset, text)
-      case DeleteAt(offset, text) => buffer.remove(offset, text.length)
+    try {
+      buffer.beginCompoundEdit()
+      actions foreach {
+        case InsertAt(offset, text) => buffer.insert(offset, text)
+        case DeleteAt(offset, text) => buffer.remove(offset, text.length)
+      }
+      buffer.endCompoundEdit()
+    } finally {
+      field.set(buffer, false)
     }
     
-    /* val newSelection = origSelection map { sel =>
-      val relevant = actions filter { _.offset <= sel.getStart() }
-      
-      val adjustments = relevant map {
-        case InsertAt(_, text) => text.length
-        case DeleteAt(_, text) => -text.length
-      }
-      
-      val delta = adjustments.sum
-      
-      sel match {
-        case range: Selection.Range => new Selection.Range(range.getStart() + delta, range.getEnd() + delta)
-        case rect: Selection.Rect => new Selection.Rect(rect.getStart() + delta, rect.getEnd() + delta)
-      }
-    }
-    
-    area.setSelection(newSelection) */
+    // TODO adjust undo/redo stack for new offsets
   }
   
   // TODO type safety
