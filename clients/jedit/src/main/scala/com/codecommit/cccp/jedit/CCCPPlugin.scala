@@ -134,14 +134,14 @@ object CCCPPlugin {
     field.setAccessible(true)
     field.set(buffer, true)
     
+    buffer.beginCompoundEdit()
     try {
-      buffer.beginCompoundEdit()
       actions foreach {
         case InsertAt(offset, text) => buffer.insert(offset, text)
         case DeleteAt(offset, text) => buffer.remove(offset, text.length)
       }
-      buffer.endCompoundEdit()
     } finally {
+      buffer.endCompoundEdit()
       field.set(buffer, false)
     }
     
