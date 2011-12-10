@@ -150,7 +150,10 @@ object CCCPPlugin {
   
   // TODO type safety
   private def sendChange(change: String, fileName: String, offset: Int, text: String, after: Int) {
-    val op = SExp(key(":retain"), offset, key(":" + change), text, key(":retain"), after)
+    val pre = if (offset > 0) key(":retain") :: IntAtom(offset) :: Nil else Nil
+    val mid = key(":" + change) :: StringAtom(text) :: Nil
+    val post = if (after > 0) key(":retain") :: IntAtom(after) :: Nil else Nil
+    val op = SExpList(pre ::: mid ::: post)
     sendRPC(SExp(key("swank:edit-file"), fileName, op), callId())
   }
   
